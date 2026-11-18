@@ -36,8 +36,8 @@
       label: '接口',
       english: 'Interface',
       keyword: 'interface',
-      description: '接口在图中显示 «interface» 标记，通常用于配置方法。',
-      hasAttributes: false,
+      description: '接口在图中显示 «interface» 标记，可定义属性和方法；属性通常为公开常量。',
+      hasAttributes: true,
       hasMethods: true,
       hasLiterals: false,
       italicName: false
@@ -211,6 +211,8 @@
   let dialogResolve = null;
   let storageBroken = false;
   let idSequence = 0;
+  let currentLibraryId = null;
+  let reloadingLibrary = false;
 
   /* ------------------------------------------------------------------
      Utilities
@@ -334,6 +336,19 @@
   function parseMemberLine(line, kind) {
     let text = String(line ?? '').trim();
     let visibility = defaultVisibility(kind);
+    let isVirtual = false;
+    let isAbstract = false;
+
+    if (kind === 'method') {
+      let hadFlags = false;
+      text = text.replace(/\{\s*(virtual|abstract)\s*\}/gi, (match, flag) => {
+        hadFlags = true;
+        if (flag.toLowerCase() === 'virtual') isVirtual = true;
+        else isAbstract = true;
+        return ' ';
+      });
+      if (hadFlags) text = text.replace(/[ \t]+/g, ' ').trim();
+    }
 
     const symbolMatch = text.match(/^([+\-#~])\s*/);
     if (symbolMatch) {
@@ -344,6 +359,15 @@
       if (wordMatch) {
         visibility = VISIBILITY_WORDS[wordMatch[1].toLowerCase()] || visibility;
         text = text.slice(wordMatch[0].length).trim();
+      }
+    }
+
+    if (kind === 'method') {
+      let modifierMatch;
+      while ((modifierMatch = text.match(/^(virtual|abstract)\b\s*/i))) {
+        if (modifierMatch[1].toLowerCase() === 'virtual') isVirtual = true;
+        else isAbstract = true;
+        text = text.slice(modifierMatch[0].length).trim();
       }
     }
 
@@ -361,7 +385,7 @@
           params = text.slice(openIndex + 1).trim();
         }
         returnType = returnType.replace(/^:\s*/, '').trim();
-        return { visibility, name, params, returnType };
+        return { visibility, name, params, returnType, virtual: isVirtual, abstract: isAbstract };
       }
 
       const colonIndex = text.indexOf(':');
@@ -370,10 +394,19 @@
           visibility,
           name: text.slice(0, colonIndex).trim(),
           params: '',
-          returnType: text.slice(colonIndex + 1).trim()
+          returnType: text.slice(colonIndex + 1).trim(),
+          virtual: isVirtual,
+          abstract: isAbstract
         };
       }
-      return { visibility, name: text, params: '', returnType: '' };
+      return {
+        visibility,
+        name: text,
+        params: '',
+        returnType: '',
+        virtual: isVirtual,
+        abstract: isAbstract
+      };
     }
 
     const colonIndex = text.indexOf(':');
@@ -401,11 +434,24 @@
         params = params.slice(1, -1).trim();
       }
       const returnType = stripColon(member.returnType);
-      return `${visibility} ${name}(${params})${returnType ? `: ${returnType}` : ''}`;
+      const marks = [];
+      if (member.virtual) marks.push('virtual');
+      if (member.abstract) marks.push('abstract');
+      const markerText = marks.length ? `${marks.join(' ')} ` : '';
+      return `${visibility} ${markerText}${name}(${params})${returnType ? `: ${returnType}` : ''}`;
     }
 
     const type = stripColon(member.type);
     return `${visibility} ${name}${type ? `: ${type}` : ''}`;
+  }
+
+  function isAbstractMethodLine(line) {
+    return parseMemberLine(line, 'method').abstract === true;
+  }
+
+  function normalizeStoredMethodLine(line) {
+    if (!/\{\s*(virtual|abstract)\s*\}/i.test(line)) return line;
+    return serializeMember(parseMemberLine(line, 'method'), 'method');
   }
 
   function splitParameterList(value) {
@@ -547,7 +593,7 @@
         x: Number.isFinite(x) ? x : 0,
         y: Number.isFinite(y) ? y : 0,
         attributes: normalizeLineArray(source.attributes),
-        methods: normalizeLineArray(source.methods),
+        methods: normalizeLineArray(source.methods).map(normalizeStoredMethodLine),
         literals: normalizeLineArray(source.literals ?? source.enumValues ?? source.values)
       });
     }
@@ -629,7 +675,24 @@
     };
   }
 
+  function getLibrary() {
+    return typeof window !== 'undefined' ? window.ClassoLibrary : null;
+  }
+
   function loadFromStorage() {
+    const library = getLibrary();
+
+    if (library) {
+      const active = library.getActive('class');
+      const stored = active ? library.load(active.id) : null;
+      const data = stored ? normalizeDiagram(stored.data) : null;
+      if (active && data) {
+        currentLibraryId = active.id;
+        return { data, view: normalizeView(stored.view) };
+      }
+      return null;
+    }
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
@@ -649,17 +712,52 @@
     clearTimeout(saveTimer);
     saveTimer = null;
 
+    const view = {
+      x: fmt(state.view.x),
+      y: fmt(state.view.y),
+      scale: fmt(state.view.scale)
+    };
+    const data = {
+      classes: state.classes.map(cleanClass),
+      relations: state.relations.map(cleanRelation)
+    };
+    const library = getLibrary();
+    let librarySaved = true;
+
     try {
+      if (library) {
+        let target = currentLibraryId ? library.get(currentLibraryId) : null;
+        if (!target) target = library.getActive('class');
+
+        if (!target) {
+          target = library.create('class', {
+            name: library.suggestName('class', '我的类图'),
+            data,
+            view,
+            activate: true,
+            silent: true
+          });
+        }
+
+        if (target) {
+          currentLibraryId = target.id;
+          librarySaved = library.save(target.id, data, view) !== false;
+        } else {
+          librarySaved = false;
+        }
+      }
+
       const payload = JSON.parse(serializeData());
       payload.version = 1;
       payload.app = 'Classo';
       payload.savedAt = Date.now();
-      payload.view = {
-        x: fmt(state.view.x),
-        y: fmt(state.view.y),
-        scale: fmt(state.view.scale)
-      };
+      payload.view = view;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+      if (library && !librarySaved) {
+        throw new Error('library storage unavailable');
+      }
+
       storageBroken = false;
       setSaveState('saved', '已保存');
       const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -672,6 +770,74 @@
       els.saveState.title = '浏览器本地存储不可用，请从「文件」菜单导出备份';
       if (options.notify) showToast('保存失败，建议导出 JSON 备份');
       return false;
+    }
+  }
+
+  function reloadActiveDiagram() {
+    if (reloadingLibrary) return;
+    const library = getLibrary();
+    if (!library) return;
+
+    reloadingLibrary = true;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    clearTimeout(historyTimer);
+    historyTimer = null;
+
+    try {
+      const active = library.getActive('class');
+      const stored = active ? library.load(active.id) : null;
+      const data = stored ? normalizeDiagram(stored.data) : null;
+
+      state.selection = null;
+      state.tool = 'select';
+      state.connect = { type: null, sourceId: null };
+      hideConnectPreview();
+      renderGuides([]);
+
+      if (!active || !data) {
+        const created = library.create('class', {
+          name: library.suggestName('class', '未命名类图'),
+          data: { classes: [], relations: [] },
+          view: null,
+          activate: true,
+          silent: true
+        });
+
+        currentLibraryId = created ? created.id : null;
+        state.classes = [];
+        state.relations = [];
+
+        refreshAll({ inspector: true });
+        initHistory();
+
+        const area = getWorkArea();
+        state.view = { x: area.cx, y: area.cy, scale: 1 };
+        applyView();
+        setSaveState('saved', '已保存');
+        els.saveState.title = created ? `${created.name} · 已载入` : '已保存';
+        return;
+      }
+
+      const view = normalizeView(stored.view);
+      currentLibraryId = active.id;
+      state.classes = data.classes;
+      state.relations = data.relations;
+
+      refreshAll({ inspector: true });
+      initHistory();
+
+      if (view) {
+        state.view = view;
+        applyView();
+      } else {
+        requestAnimationFrame(() => fitToView({ save: false }));
+      }
+
+      setSaveState('saved', '已保存');
+      els.saveState.title = `${active.name} · 已载入`;
+    } finally {
+      reloadingLibrary = false;
     }
   }
 
@@ -931,7 +1097,10 @@
 
       if (info.hasMethods) {
         const rows = cls.methods.length
-          ? cls.methods.map((line) => `<div class="member-row" title="${esc(line)}">${esc(line)}</div>`).join('')
+          ? cls.methods.map((line) => {
+              const abstract = isAbstractMethodLine(line);
+              return `<div class="member-row${abstract ? ' is-abstract' : ''}" title="${esc(line)}">${esc(line)}</div>`;
+            }).join('')
           : '<div class="member-row empty">暂无方法</div>';
         sections.push(`<div class="class-section" style="height:${layout.methodH}px">${rows}</div>`);
       }
@@ -1354,6 +1523,19 @@
         <span class="member-field-label">返回类型</span>
         <input class="member-return" data-member-field="returnType" type="text" value="${esc(member.returnType)}" placeholder="如 void（可选）" maxlength="70" autocomplete="off" spellcheck="false" aria-label="方法返回类型">
       </div>
+      <div class="method-options">
+        <span class="member-field-label">方法标记</span>
+        <div class="method-flag-list">
+          <label class="method-flag-toggle" title="标记为虚函数，方法名前显示 virtual">
+            <input type="checkbox" data-method-flag="virtual" aria-label="标记为虚函数" ${member.virtual ? 'checked' : ''}>
+            <span class="method-flag-pill">虚函数</span>
+          </label>
+          <label class="method-flag-toggle" title="标记为抽象方法，方法名前显示 abstract，并使用斜体">
+            <input type="checkbox" data-method-flag="abstract" aria-label="标记为抽象方法" ${member.abstract ? 'checked' : ''}>
+            <span class="method-flag-pill">抽象方法</span>
+          </label>
+        </div>
+      </div>
     `;
 
     return `
@@ -1439,10 +1621,10 @@
     const name = getClassName(cls);
 
     const memberTip = (info.hasAttributes || info.hasMethods)
-      ? '修饰符通过下拉选择，无需手动输入 <b>+ − # ~</b> 符号。'
+      ? `修饰符通过下拉选择，无需手动输入 <b>+ − # ~</b> 符号。${info.hasMethods ? '方法可额外标记为虚函数或抽象方法。' : ''}`
       : '枚举值会按顺序显示在图中。';
     const typeTip = info.type === 'interface'
-      ? '接口名称前会自动显示 «interface»。'
+      ? '接口名称前会自动显示 «interface»；接口属性通常使用公开修饰符。'
       : info.type === 'abstract'
         ? '抽象类名称前会显示 «abstract»，名称同时使用斜体。'
         : info.type === 'enum'
@@ -1949,6 +2131,10 @@
         .map((input) => input.value.trim())
         .filter(Boolean);
       member.params = params.join(', ');
+
+      row.querySelectorAll('[data-method-flag]').forEach((input) => {
+        member[input.dataset.methodFlag] = input.checked;
+      });
     }
     return member;
   }
@@ -1977,7 +2163,9 @@
   function onInspectorInput(event) {
     const editor = closestEl(event.target, '.member-editor');
     const isMemberControl = event.target instanceof Element
-      && (event.target.dataset.memberField !== undefined || event.target.dataset.paramValue !== undefined);
+      && (event.target.dataset.memberField !== undefined
+        || event.target.dataset.paramValue !== undefined
+        || event.target.dataset.methodFlag !== undefined);
     if (editor && isMemberControl) {
       syncMemberEditor(editor);
       return;
@@ -2062,7 +2250,7 @@
 
   function onInspectorFocusOut(event) {
     const target = event.target;
-    if (target instanceof Element && target.matches('[data-field], [data-member-field], [data-literal-index]')) {
+    if (target instanceof Element && target.matches('[data-field], [data-member-field], [data-literal-index], [data-method-flag]')) {
       commitHistory();
     }
   }
@@ -2227,8 +2415,9 @@
     let suffix = 1;
     while (usedNames.has(`${base}${suffix}`)) suffix += 1;
 
+    const isInterface = normalizeElementType(cls.type) === 'interface';
     const member = kind === 'attribute'
-      ? { visibility: '-', name: `${base}${suffix}`, type: '' }
+      ? { visibility: isInterface ? '+' : '-', name: `${base}${suffix}`, type: '' }
       : { visibility: '+', name: `${base}${suffix}`, params: '', returnType: '' };
 
     list.push(serializeMember(member, kind));
@@ -3174,7 +3363,8 @@
         if (line === null) {
           return `<text x="${fmt(x + 17)}" y="${fmt(centerY)}" dominant-baseline="central" font-family="${SVG_SANS}" font-size="10.5" font-style="italic" fill="#B4BDC9">${emptyText}</text>`;
         }
-        return `<text x="${fmt(x + 17)}" y="${fmt(centerY)}" dominant-baseline="central" font-family="${SVG_MONO}" font-size="12" fill="#475467">${esc(line)}</text>`;
+        const italic = isAbstractMethodLine(line) ? ' font-style="italic"' : '';
+        return `<text x="${fmt(x + 17)}" y="${fmt(centerY)}" dominant-baseline="central" font-family="${SVG_MONO}" font-size="12" fill="#475467"${italic}>${esc(line)}</text>`;
       }).join('');
 
       let sectionTop = y + 1 + titleH;
@@ -3275,7 +3465,8 @@
      ------------------------------------------------------------------ */
 
   function onKeyDown(event) {
-    if (els.confirmDialog.open) return;
+    if (document.body.dataset.mode === 'sequence') return;
+    if (document.querySelector('dialog[open]')) return;
 
     if (event.key === 'Escape') {
       if (state.drag) {
@@ -3502,6 +3693,12 @@
       if (event.target === els.confirmDialog) settleConfirm(false);
     });
 
+    window.addEventListener('classo:activechange', (event) => {
+      if (!event.detail || event.detail.kind !== 'class') return;
+      if (event.detail.id === currentLibraryId) return;
+      reloadActiveDiagram();
+    });
+
     window.addEventListener('beforeunload', () => {
       if (storageBroken) return;
       persistNow();
@@ -3551,6 +3748,12 @@
       });
     }
   }
+
+  window.ClassoEditors = window.ClassoEditors || {};
+  window.ClassoEditors.class = {
+    flush: () => persistNow(),
+    reload: () => reloadActiveDiagram()
+  };
 
   init();
 })();

@@ -4,246 +4,446 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="Classo 是一个轻量、简洁的 UML 类图绘制工具，支持类、接口、抽象类、枚举及继承、实现、聚合、组合与依赖关系。">
-  <title>Classo · UML 类图工具</title>
+  <meta name="description" content="Classo 是一个轻量、简洁的 UML 绘图工具，支持类图（类、接口、抽象类、枚举及继承、实现、聚合、组合与依赖关系）与时序图（参与者、消息、生命线与激活条）。">
+  <title>Classo · UML 绘图工具</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-mode="class">
   <div class="app">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="3.5" width="16" height="17" rx="3.2"></rect>
-            <path d="M4 9h16M9.5 9v11.5"></path>
-          </svg>
+      <div class="topbar-left">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3.5" width="16" height="17" rx="3.2"></rect>
+              <path d="M4 9h16M9.5 9v11.5"></path>
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <div class="brand-name">Classo <span class="brand-badge">UML</span></div>
+            <div class="brand-sub">绘图工作台</div>
+          </div>
         </div>
-        <div class="brand-copy">
-          <div class="brand-name">Classo <span class="brand-badge">UML</span></div>
-          <div class="brand-sub">类图工作台</div>
+
+        <div class="mode-switch" role="tablist" aria-label="图表类型">
+          <button class="mode-tab active" type="button" role="tab" data-mode="class" aria-selected="true" title="类图">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3.5" width="16" height="17" rx="3.2"></rect>
+              <path d="M4 9h16M9.5 9v11.5"></path>
+            </svg>
+            <span>类图</span>
+          </button>
+          <button class="mode-tab" type="button" role="tab" data-mode="sequence" aria-selected="false" title="时序图">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2.8" y="3.5" width="6" height="4.4" rx="1.2"></rect>
+              <rect x="15.2" y="3.5" width="6" height="4.4" rx="1.2"></rect>
+              <path d="M5.8 8v12M18.2 8v12" stroke-dasharray="2 2.4"></path>
+              <path d="M5.8 12.5h12.4"></path>
+              <path d="m15.2 10 3 2.5-3 2.5"></path>
+            </svg>
+            <span>时序图</span>
+          </button>
         </div>
       </div>
 
       <div class="topbar-right">
-        <div class="save-state" id="saveState" title="所有更改都会自动保存在当前浏览器">
-          <span class="save-dot"></span>
-          <span id="saveText">已保存</span>
-        </div>
-        <div class="v-divider"></div>
-        <button class="icon-btn" id="undoBtn" type="button" title="撤销 (Ctrl/⌘ Z)" aria-label="撤销" disabled>
+        <button class="btn ghost library-btn" id="libraryBtn" type="button" title="我的图表">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9.5 14 4 9l5.5-5"></path>
-            <path d="M4 9h9.5a5.75 5.75 0 1 1 0 11.5H10"></path>
+            <rect x="3.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+            <rect x="13.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+            <rect x="3.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+            <rect x="13.5" y="13.5" width="7" height="7" rx="1.6"></rect>
           </svg>
-        </button>
-        <button class="icon-btn" id="redoBtn" type="button" title="重做 (Ctrl/⌘ Shift Z)" aria-label="重做" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m14.5 14 5.5-5-5.5-5"></path>
-            <path d="M20 9H10.5a5.75 5.75 0 1 0 0 11.5H14"></path>
-          </svg>
+          <span>我的图表</span>
         </button>
         <div class="v-divider"></div>
 
-        <div class="menu-wrap" id="menuWrap">
-          <button class="btn ghost" id="fileMenuBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+        <div class="topbar-group" id="classControls">
+          <div class="save-state" id="saveState" title="所有更改都会自动保存在当前浏览器">
+            <span class="save-dot"></span>
+            <span id="saveText">已保存</span>
+          </div>
+          <div class="v-divider"></div>
+          <button class="icon-btn" id="undoBtn" type="button" title="撤销 (Ctrl/⌘ Z)" aria-label="撤销" disabled>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3.5 7.5V6a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7.5z"></path>
-            </svg>
-            <span>文件</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m7 10 5 5 5-5"></path>
+              <path d="M9.5 14 4 9l5.5-5"></path>
+              <path d="M4 9h9.5a5.75 5.75 0 1 1 0 11.5H10"></path>
             </svg>
           </button>
-          <div class="menu" id="fileMenu" role="menu" hidden>
-            <button class="menu-item" type="button" role="menuitem" data-action="export-png">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="2.5"></rect>
-                <circle cx="8.5" cy="9.5" r="1.4"></circle>
-                <path d="m3.5 16.5 5-5 4 4 3-3 5.5 5.5"></path>
+          <button class="icon-btn" id="redoBtn" type="button" title="重做 (Ctrl/⌘ Shift Z)" aria-label="重做" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m14.5 14 5.5-5-5.5-5"></path>
+              <path d="M20 9H10.5a5.75 5.75 0 1 0 0 11.5H14"></path>
+            </svg>
+          </button>
+          <div class="v-divider"></div>
+
+          <div class="menu-wrap" id="menuWrap">
+            <button class="btn ghost" id="fileMenuBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3.5 7.5V6a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7.5z"></path>
               </svg>
-              <span>导出 PNG</span>
-              <span class="shortcut">2×</span>
-            </button>
-            <button class="menu-item" type="button" role="menuitem" data-action="export-svg">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 19 19 5"></path>
-                <circle cx="5" cy="19" r="2"></circle>
-                <circle cx="19" cy="5" r="2"></circle>
+              <span>文件</span>
+              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7 10 5 5 5-5"></path>
               </svg>
-              <span>导出 SVG</span>
-              <span class="shortcut">矢量</span>
             </button>
-            <button class="menu-item" type="button" role="menuitem" data-action="export-json">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 4H6.5A2.5 2.5 0 0 0 4 6.5v3L2 12l2 2.5v3A2.5 2.5 0 0 0 6.5 20H8M16 4h1.5A2.5 2.5 0 0 1 20 6.5v3l2 2.5-2 2.5v3a2.5 2.5 0 0 1-2.5 2.5H16"></path>
-              </svg>
-              <span>导出 JSON</span>
-              <span class="shortcut">.json</span>
-            </button>
-            <div class="menu-sep"></div>
-            <button class="menu-item" type="button" role="menuitem" data-action="import">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3v12m0 0 4-4m-4 4-4-4"></path>
-                <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
-              </svg>
-              <span>导入 JSON</span>
-            </button>
-            <button class="menu-item" type="button" role="menuitem" data-action="load-sample">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m12 3 1.7 4.6L18.5 9.3l-4.8 1.7L12 15.6l-1.7-4.6-4.8-1.7 4.8-1.7L12 3z"></path>
-                <path d="m18.5 15.5.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"></path>
-              </svg>
-              <span>加载示例</span>
-            </button>
-            <div class="menu-sep"></div>
-            <button class="menu-item danger" type="button" role="menuitem" data-action="clear">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7"></path>
-                <path d="M10 11v5M14 11v5"></path>
-              </svg>
-              <span>清空画布</span>
-            </button>
+            <div class="menu" id="fileMenu" role="menu" hidden>
+              <button class="menu-item" type="button" role="menuitem" data-action="export-png">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2.5"></rect>
+                  <circle cx="8.5" cy="9.5" r="1.4"></circle>
+                  <path d="m3.5 16.5 5-5 4 4 3-3 5.5 5.5"></path>
+                </svg>
+                <span>导出 PNG</span>
+                <span class="shortcut">2×</span>
+              </button>
+              <button class="menu-item" type="button" role="menuitem" data-action="export-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 19 19 5"></path>
+                  <circle cx="5" cy="19" r="2"></circle>
+                  <circle cx="19" cy="5" r="2"></circle>
+                </svg>
+                <span>导出 SVG</span>
+                <span class="shortcut">矢量</span>
+              </button>
+              <button class="menu-item" type="button" role="menuitem" data-action="export-json">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 4H6.5A2.5 2.5 0 0 0 4 6.5v3L2 12l2 2.5v3A2.5 2.5 0 0 0 6.5 20H8M16 4h1.5A2.5 2.5 0 0 1 20 6.5v3l2 2.5-2 2.5v3a2.5 2.5 0 0 1-2.5 2.5H16"></path>
+                </svg>
+                <span>导出 JSON</span>
+                <span class="shortcut">.json</span>
+              </button>
+              <div class="menu-sep"></div>
+              <button class="menu-item" type="button" role="menuitem" data-action="import">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v12m0 0 4-4m-4 4-4-4"></path>
+                  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
+                </svg>
+                <span>导入 JSON</span>
+              </button>
+              <button class="menu-item" type="button" role="menuitem" data-action="load-sample">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m12 3 1.7 4.6L18.5 9.3l-4.8 1.7L12 15.6l-1.7-4.6-4.8-1.7 4.8-1.7L12 3z"></path>
+                  <path d="m18.5 15.5.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"></path>
+                </svg>
+                <span>加载示例</span>
+              </button>
+              <div class="menu-sep"></div>
+              <button class="menu-item danger" type="button" role="menuitem" data-action="clear">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7"></path>
+                  <path d="M10 11v5M14 11v5"></path>
+                </svg>
+                <span>清空画布</span>
+              </button>
+            </div>
           </div>
+
+          <button class="btn primary" id="addClassBtn" type="button" title="新建元素 (C)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            <span>新建元素</span>
+          </button>
         </div>
 
-        <button class="btn primary" id="addClassBtn" type="button" title="新建元素 (C)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-            <path d="M12 5v14M5 12h14"></path>
-          </svg>
-          <span>新建元素</span>
-        </button>
+        <div class="topbar-group" id="seqControls" hidden>
+          <div class="save-state" id="seqSaveState" title="所有更改都会自动保存在当前浏览器">
+            <span class="save-dot"></span>
+            <span id="seqSaveText">已保存</span>
+          </div>
+          <div class="v-divider"></div>
+          <button class="icon-btn" id="seqUndoBtn" type="button" title="撤销 (Ctrl/⌘ Z)" aria-label="撤销" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.5 14 4 9l5.5-5"></path>
+              <path d="M4 9h9.5a5.75 5.75 0 1 1 0 11.5H10"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" id="seqRedoBtn" type="button" title="重做 (Ctrl/⌘ Shift Z)" aria-label="重做" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m14.5 14 5.5-5-5.5-5"></path>
+              <path d="M20 9H10.5a5.75 5.75 0 1 0 0 11.5H14"></path>
+            </svg>
+          </button>
+          <div class="v-divider"></div>
+
+          <div class="menu-wrap" id="seqMenuWrap">
+            <button class="btn ghost" id="seqFileMenuBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3.5 7.5V6a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7.5z"></path>
+              </svg>
+              <span>文件</span>
+              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7 10 5 5 5-5"></path>
+              </svg>
+            </button>
+            <div class="menu" id="seqFileMenu" role="menu" hidden>
+              <button class="menu-item" type="button" role="menuitem" data-action="export-png">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2.5"></rect>
+                  <circle cx="8.5" cy="9.5" r="1.4"></circle>
+                  <path d="m3.5 16.5 5-5 4 4 3-3 5.5 5.5"></path>
+                </svg>
+                <span>导出 PNG</span>
+                <span class="shortcut">2×</span>
+              </button>
+              <button class="menu-item" type="button" role="menuitem" data-action="export-svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 19 19 5"></path>
+                  <circle cx="5" cy="19" r="2"></circle>
+                  <circle cx="19" cy="5" r="2"></circle>
+                </svg>
+                <span>导出 SVG</span>
+                <span class="shortcut">矢量</span>
+              </button>
+              <button class="menu-item" type="button" role="menuitem" data-action="export-json">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 4H6.5A2.5 2.5 0 0 0 4 6.5v3L2 12l2 2.5v3A2.5 2.5 0 0 0 6.5 20H8M16 4h1.5A2.5 2.5 0 0 1 20 6.5v3l2 2.5-2 2.5v3a2.5 2.5 0 0 1-2.5 2.5H16"></path>
+                </svg>
+                <span>导出 JSON</span>
+                <span class="shortcut">.json</span>
+              </button>
+              <div class="menu-sep"></div>
+              <button class="menu-item" type="button" role="menuitem" data-action="import">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v12m0 0 4-4m-4 4-4-4"></path>
+                  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
+                </svg>
+                <span>导入 JSON</span>
+              </button>
+              <button class="menu-item" type="button" role="menuitem" data-action="load-sample">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m12 3 1.7 4.6L18.5 9.3l-4.8 1.7L12 15.6l-1.7-4.6-4.8-1.7 4.8-1.7L12 3z"></path>
+                  <path d="m18.5 15.5.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"></path>
+                </svg>
+                <span>加载示例</span>
+              </button>
+              <div class="menu-sep"></div>
+              <button class="menu-item danger" type="button" role="menuitem" data-action="clear">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7"></path>
+                  <path d="M10 11v5M14 11v5"></path>
+                </svg>
+                <span>清空画布</span>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn primary" id="addLifelineBtn" type="button" title="新建参与者 (L)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            <span>新建参与者</span>
+          </button>
+        </div>
       </div>
     </header>
 
-    <main class="workspace">
-      <div class="canvas" id="canvas">
-        <svg class="edge-svg" id="edgeSvg" aria-hidden="true">
-          <defs>
-            <marker id="mk-open" markerWidth="16" markerHeight="16" refX="13" refY="8" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M2 2.5 13 8 2 13.5" fill="none" stroke="#7C8A9E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-            </marker>
-            <marker id="mk-open-sel" markerWidth="16" markerHeight="16" refX="13" refY="8" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M2 2.5 13 8 2 13.5" fill="none" stroke="#4F46E5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
-            </marker>
-            <marker id="mk-triangle" markerWidth="17" markerHeight="17" refX="14.5" refY="8.5" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M1.5 1.5 14.5 8.5 1.5 15.5Z" fill="#FFFFFF" stroke="#7C8A9E" stroke-width="1.4" stroke-linejoin="round"></path>
-            </marker>
-            <marker id="mk-triangle-sel" markerWidth="17" markerHeight="17" refX="14.5" refY="8.5" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M1.5 1.5 14.5 8.5 1.5 15.5Z" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"></path>
-            </marker>
-            <marker id="mk-diamond" markerWidth="16" markerHeight="16" refX="1" refY="8" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M1 8 8 2.5 15 8 8 13.5Z" fill="#FFFFFF" stroke="#7C8A9E" stroke-width="1.4" stroke-linejoin="round"></path>
-            </marker>
-            <marker id="mk-diamond-sel" markerWidth="16" markerHeight="16" refX="1" refY="8" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M1 8 8 2.5 15 8 8 13.5Z" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"></path>
-            </marker>
-            <marker id="mk-diamond-filled" markerWidth="16" markerHeight="16" refX="1" refY="8" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M1 8 8 2.5 15 8 8 13.5Z" fill="#7C8A9E" stroke="#7C8A9E" stroke-width="1.2" stroke-linejoin="round"></path>
-            </marker>
-            <marker id="mk-diamond-filled-sel" markerWidth="16" markerHeight="16" refX="1" refY="8" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M1 8 8 2.5 15 8 8 13.5Z" fill="#4F46E5" stroke="#4F46E5" stroke-width="1.2" stroke-linejoin="round"></path>
-            </marker>
-          </defs>
-          <g id="edgeRoot"></g>
-          <g id="previewRoot"></g>
-          <g id="guideRoot"></g>
-        </svg>
-        <div class="node-pan" id="nodePan">
-          <div class="node-layer" id="nodeLayer"></div>
+    <div class="workspace-stack">
+      <main class="workspace" id="classWorkspace">
+        <div class="canvas" id="canvas">
+          <svg class="edge-svg" id="edgeSvg" aria-hidden="true">
+            <defs>
+              <marker id="mk-open" markerWidth="16" markerHeight="16" refX="13" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M2 2.5 13 8 2 13.5" fill="none" stroke="#7C8A9E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+              </marker>
+              <marker id="mk-open-sel" markerWidth="16" markerHeight="16" refX="13" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M2 2.5 13 8 2 13.5" fill="none" stroke="#4F46E5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+              </marker>
+              <marker id="mk-triangle" markerWidth="17" markerHeight="17" refX="14.5" refY="8.5" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M1.5 1.5 14.5 8.5 1.5 15.5Z" fill="#FFFFFF" stroke="#7C8A9E" stroke-width="1.4" stroke-linejoin="round"></path>
+              </marker>
+              <marker id="mk-triangle-sel" markerWidth="17" markerHeight="17" refX="14.5" refY="8.5" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M1.5 1.5 14.5 8.5 1.5 15.5Z" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"></path>
+              </marker>
+              <marker id="mk-diamond" markerWidth="16" markerHeight="16" refX="1" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M1 8 8 2.5 15 8 8 13.5Z" fill="#FFFFFF" stroke="#7C8A9E" stroke-width="1.4" stroke-linejoin="round"></path>
+              </marker>
+              <marker id="mk-diamond-sel" markerWidth="16" markerHeight="16" refX="1" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M1 8 8 2.5 15 8 8 13.5Z" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"></path>
+              </marker>
+              <marker id="mk-diamond-filled" markerWidth="16" markerHeight="16" refX="1" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M1 8 8 2.5 15 8 8 13.5Z" fill="#7C8A9E" stroke="#7C8A9E" stroke-width="1.2" stroke-linejoin="round"></path>
+              </marker>
+              <marker id="mk-diamond-filled-sel" markerWidth="16" markerHeight="16" refX="1" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M1 8 8 2.5 15 8 8 13.5Z" fill="#4F46E5" stroke="#4F46E5" stroke-width="1.2" stroke-linejoin="round"></path>
+              </marker>
+            </defs>
+            <g id="edgeRoot"></g>
+            <g id="previewRoot"></g>
+            <g id="guideRoot"></g>
+          </svg>
+          <div class="node-pan" id="nodePan">
+            <div class="node-layer" id="nodeLayer"></div>
+          </div>
         </div>
-      </div>
 
-      <div class="mode-banner" id="modeBanner" role="status" aria-live="polite">
-        <span class="mode-icon" id="modeIcon"></span>
-        <span class="mode-text" id="modeText"></span>
-        <button class="mode-cancel" id="modeCancel" type="button">取消 <kbd>Esc</kbd></button>
-      </div>
+        <div class="mode-banner" id="modeBanner" role="status" aria-live="polite">
+          <span class="mode-icon" id="modeIcon"></span>
+          <span class="mode-text" id="modeText"></span>
+          <button class="mode-cancel" id="modeCancel" type="button">取消 <kbd>Esc</kbd></button>
+        </div>
 
-      <aside class="toolbar" id="toolbar" aria-label="绘图工具">
-        <button class="tool-btn active" type="button" data-tool="select" title="选择工具 (V)" aria-label="选择工具">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 3.8 18.6 12l-6.1 1.8-2.8 6.4L5 3.8z"></path>
-          </svg>
-          <span>选择</span>
-        </button>
-        <div class="tool-sep"><span>关系</span></div>
-        <button class="tool-btn" type="button" data-rel="association" title="关联 / Association" aria-label="添加关联">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12h13"></path>
-            <path d="m13 8 4 4-4 4"></path>
-          </svg>
-          <span>关联</span>
-        </button>
-        <button class="tool-btn" type="button" data-rel="inheritance" title="继承 / Generalization" aria-label="添加继承关系">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12h8"></path>
-            <path d="M11 6.5 18 12l-7 5.5V6.5z"></path>
-          </svg>
-          <span>继承</span>
-        </button>
-        <button class="tool-btn" type="button" data-rel="realization" title="实现 / Realization" aria-label="添加实现关系">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12h8" stroke-dasharray="3 2.5"></path>
-            <path d="M11 6.5 18 12l-7 5.5V6.5z"></path>
-          </svg>
-          <span>实现</span>
-        </button>
-        <button class="tool-btn" type="button" data-rel="aggregation" title="聚合 / Aggregation" aria-label="添加聚合关系">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m3 12 4.5-3.5L12 12l-4.5 3.5L3 12z"></path>
-            <path d="M12 12h9"></path>
-          </svg>
-          <span>聚合</span>
-        </button>
-        <button class="tool-btn" type="button" data-rel="composition" title="组合 / Composition" aria-label="添加组合关系">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m3 12 4.5-3.5L12 12l-4.5 3.5L3 12z" fill="currentColor"></path>
-            <path d="M12 12h9"></path>
-          </svg>
-          <span>组合</span>
-        </button>
-        <button class="tool-btn" type="button" data-rel="dependency" title="依赖 / Dependency" aria-label="添加依赖关系">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12h13" stroke-dasharray="3 2.5"></path>
-            <path d="m13 8 4 4-4 4"></path>
-          </svg>
-          <span>依赖</span>
-        </button>
-      </aside>
+        <aside class="toolbar" id="toolbar" aria-label="绘图工具">
+          <button class="tool-btn active" type="button" data-tool="select" title="选择工具 (V)" aria-label="选择工具">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 3.8 18.6 12l-6.1 1.8-2.8 6.4L5 3.8z"></path>
+            </svg>
+            <span>选择</span>
+          </button>
+          <div class="tool-sep"><span>关系</span></div>
+          <button class="tool-btn" type="button" data-rel="association" title="关联 / Association" aria-label="添加关联">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h13"></path>
+              <path d="m13 8 4 4-4 4"></path>
+            </svg>
+            <span>关联</span>
+          </button>
+          <button class="tool-btn" type="button" data-rel="inheritance" title="继承 / Generalization" aria-label="添加继承关系">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h8"></path>
+              <path d="M11 6.5 18 12l-7 5.5V6.5z"></path>
+            </svg>
+            <span>继承</span>
+          </button>
+          <button class="tool-btn" type="button" data-rel="realization" title="实现 / Realization" aria-label="添加实现关系">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h8" stroke-dasharray="3 2.5"></path>
+              <path d="M11 6.5 18 12l-7 5.5V6.5z"></path>
+            </svg>
+            <span>实现</span>
+          </button>
+          <button class="tool-btn" type="button" data-rel="aggregation" title="聚合 / Aggregation" aria-label="添加聚合关系">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 12 4.5-3.5L12 12l-4.5 3.5L3 12z"></path>
+              <path d="M12 12h9"></path>
+            </svg>
+            <span>聚合</span>
+          </button>
+          <button class="tool-btn" type="button" data-rel="composition" title="组合 / Composition" aria-label="添加组合关系">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 12 4.5-3.5L12 12l-4.5 3.5L3 12z" fill="currentColor"></path>
+              <path d="M12 12h9"></path>
+            </svg>
+            <span>组合</span>
+          </button>
+          <button class="tool-btn" type="button" data-rel="dependency" title="依赖 / Dependency" aria-label="添加依赖关系">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h13" stroke-dasharray="3 2.5"></path>
+              <path d="m13 8 4 4-4 4"></path>
+            </svg>
+            <span>依赖</span>
+          </button>
+        </aside>
 
-      <aside class="inspector" id="inspector" aria-label="属性面板"></aside>
+        <aside class="inspector" id="inspector" aria-label="属性面板"></aside>
 
-      <div class="zoom-controls" aria-label="画布缩放">
-        <button class="zoom-btn" id="zoomOut" type="button" title="缩小" aria-label="缩小">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 12h12"></path></svg>
-        </button>
-        <button class="zoom-value" id="zoomReset" type="button" title="重置为 100%">100%</button>
-        <button class="zoom-btn" id="zoomIn" type="button" title="放大" aria-label="放大">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 6v12M6 12h12"></path></svg>
-        </button>
-        <span class="zoom-divider"></span>
-        <button class="zoom-btn" id="fitBtn" type="button" title="适应画布 (F)" aria-label="适应画布">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4"></path>
-          </svg>
-        </button>
-      </div>
+        <div class="zoom-controls" aria-label="画布缩放">
+          <button class="zoom-btn" id="zoomOut" type="button" title="缩小" aria-label="缩小">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 12h12"></path></svg>
+          </button>
+          <button class="zoom-value" id="zoomReset" type="button" title="重置为 100%">100%</button>
+          <button class="zoom-btn" id="zoomIn" type="button" title="放大" aria-label="放大">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 6v12M6 12h12"></path></svg>
+          </button>
+          <span class="zoom-divider"></span>
+          <button class="zoom-btn" id="fitBtn" type="button" title="适应画布 (F)" aria-label="适应画布">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4"></path>
+            </svg>
+          </button>
+        </div>
 
-      <div class="canvas-hint" aria-hidden="true">
-        <span>拖动空白平移</span><span class="hint-dot">·</span>
-        <span>滚轮缩放</span><span class="hint-dot">·</span>
-        <span>双击空白新建元素</span>
-      </div>
+        <div class="canvas-hint" aria-hidden="true">
+          <span>拖动空白平移</span><span class="hint-dot">·</span>
+          <span>滚轮缩放</span><span class="hint-dot">·</span>
+          <span>双击空白新建元素</span>
+        </div>
 
-      <div class="toast" id="toast" role="status" aria-live="polite">
-        <span id="toastMessage"></span>
-        <button id="toastAction" type="button" hidden></button>
-      </div>
-    </main>
+        <div class="toast" id="toast" role="status" aria-live="polite">
+          <span id="toastMessage"></span>
+          <button id="toastAction" type="button" hidden></button>
+        </div>
+      </main>
+
+      <main class="workspace is-inactive" id="sequenceWorkspace" aria-hidden="true">
+        <div class="canvas seq-canvas" id="seqCanvas">
+          <svg class="seq-svg" id="seqSvg"></svg>
+        </div>
+
+        <div class="mode-banner" id="seqModeBanner" role="status" aria-live="polite">
+          <span class="mode-icon" id="seqModeIcon"></span>
+          <span class="mode-text" id="seqModeText"></span>
+          <button class="mode-cancel" id="seqModeCancel" type="button">取消 <kbd>Esc</kbd></button>
+        </div>
+
+        <aside class="toolbar" id="seqToolbar" aria-label="时序图工具">
+          <button class="tool-btn active" type="button" data-seq-tool="select" title="选择工具 (V)" aria-label="选择工具">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 3.8 18.6 12l-6.1 1.8-2.8 6.4L5 3.8z"></path>
+            </svg>
+            <span>选择</span>
+          </button>
+          <div class="tool-sep"><span>消息</span></div>
+          <button class="tool-btn" type="button" data-seq-msg="sync" title="同步消息 (1)" aria-label="添加同步消息">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h13"></path>
+              <path d="M15.5 7.8 21 12l-5.5 4.2z" fill="currentColor" stroke="none"></path>
+            </svg>
+            <span>同步</span>
+          </button>
+          <button class="tool-btn" type="button" data-seq-msg="async" title="异步消息 (2)" aria-label="添加异步消息">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h13"></path>
+              <path d="m16 8 4 4-4 4"></path>
+            </svg>
+            <span>异步</span>
+          </button>
+          <button class="tool-btn" type="button" data-seq-msg="return" title="返回消息 (3)" aria-label="添加返回消息">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h13" stroke-dasharray="3 2.5"></path>
+              <path d="m16 8 4 4-4 4"></path>
+            </svg>
+            <span>返回</span>
+          </button>
+        </aside>
+
+        <aside class="inspector seq-inspector" id="seqInspector" aria-label="属性面板"></aside>
+
+        <div class="zoom-controls" aria-label="画布缩放">
+          <button class="zoom-btn" id="seqZoomOut" type="button" title="缩小" aria-label="缩小">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 12h12"></path></svg>
+          </button>
+          <button class="zoom-value" id="seqZoomReset" type="button" title="重置为 100%">100%</button>
+          <button class="zoom-btn" id="seqZoomIn" type="button" title="放大" aria-label="放大">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 6v12M6 12h12"></path></svg>
+          </button>
+          <span class="zoom-divider"></span>
+          <button class="zoom-btn" id="seqFitBtn" type="button" title="适应画布 (F)" aria-label="适应画布">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="canvas-hint" aria-hidden="true">
+          <span>拖动空白平移</span><span class="hint-dot">·</span>
+          <span>滚轮缩放</span><span class="hint-dot">·</span>
+          <span>双击空白新建参与者</span>
+        </div>
+
+        <div class="toast" id="seqToast" role="status" aria-live="polite">
+          <span id="seqToastMessage"></span>
+          <button id="seqToastAction" type="button" hidden></button>
+        </div>
+      </main>
+    </div>
   </div>
 
   <input type="file" id="fileInput" accept="application/json,.json" hidden>
+  <input type="file" id="seqFileInput" accept="application/json,.json" hidden>
 
   <dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
     <div class="confirm-card">
@@ -263,6 +463,64 @@
     </div>
   </dialog>
 
+  <dialog class="confirm-dialog" id="seqConfirmDialog" aria-labelledby="seqConfirmTitle" aria-describedby="seqConfirmMessage">
+    <div class="confirm-card">
+      <div class="confirm-icon" id="seqConfirmIcon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 8.5v4.5"></path>
+          <circle cx="12" cy="16.5" r=".8" fill="currentColor" stroke="none"></circle>
+          <path d="M10.3 4.3 3.1 17a2 2 0 0 0 1.7 3h14.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"></path>
+        </svg>
+      </div>
+      <h2 id="seqConfirmTitle">确认操作</h2>
+      <p id="seqConfirmMessage"></p>
+      <div class="confirm-actions">
+        <button class="btn ghost" id="seqConfirmCancel" type="button">取消</button>
+        <button class="btn primary" id="seqConfirmOk" type="button">确定</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="library-dialog" id="libraryDialog" aria-labelledby="libraryTitle">
+    <div class="library-card">
+      <header class="library-head">
+        <div class="library-head-copy">
+          <div class="library-eyebrow">工作区</div>
+          <h2 id="libraryTitle">我的图表</h2>
+          <p class="library-subtitle" id="librarySubtitle">所有图表自动保存在当前浏览器</p>
+        </div>
+        <div class="library-head-actions">
+          <button class="btn" type="button" data-library-new="class">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            <span>新建类图</span>
+          </button>
+          <button class="btn" type="button" data-library-new="sequence">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            <span>新建时序图</span>
+          </button>
+          <button class="icon-btn" id="libraryClose" type="button" title="关闭" aria-label="关闭">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="library-tabs-row">
+        <div class="library-tabs" role="tablist" aria-label="按类型筛选">
+          <button class="library-tab active" type="button" role="tab" data-library-filter="all" aria-selected="true">全部</button>
+          <button class="library-tab" type="button" role="tab" data-library-filter="class" aria-selected="false">类图</button>
+          <button class="library-tab" type="button" role="tab" data-library-filter="sequence" aria-selected="false">时序图</button>
+        </div>
+        <span class="library-count" id="libraryCount"></span>
+      </div>
+
+      <div class="library-status" id="libraryStatus" role="status" aria-live="polite" hidden></div>
+      <div class="library-body" id="libraryBody"></div>
+    </div>
+  </dialog>
+
+  <script src="shell.js"></script>
+  <script src="library.js"></script>
   <script src="app.js"></script>
+  <script src="sequence.js"></script>
 </body>
 </html>
